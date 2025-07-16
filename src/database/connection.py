@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Optional
 from contextlib import contextmanager
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import QueuePool, NullPool
 from dotenv import load_dotenv
@@ -95,20 +95,22 @@ class DatabaseConnection:
     def execute_query(self, query: str, params: Optional[tuple] = None):
         """単一クエリを実行（SQLAlchemy経由）"""
         with self.get_session() as session:
-            result = session.execute(query, params)
+            result = session.execute(text(query), params or {})
             return result.fetchall()
     
     def execute_many(self, query: str, params_list: list):
         """バッチクエリを実行（SQLAlchemy経由）"""
         with self.get_session() as session:
-            result = session.execute(query, params_list)
-            return result.rowcount
+            # executemanyの場合は各パラメータで実行
+            for params in params_list:
+                session.execute(text(query), params)
+            return len(params_list)
     
     def test_connection(self) -> bool:
         """データベース接続をテスト"""
         try:
             with self.get_session() as session:
-                result = session.execute("SELECT 1").scalar()
+                result = session.execute(text("SELECT 1")).scalar()
                 logger.info("Database connection test successful")
                 return result == 1
         except Exception as e:
