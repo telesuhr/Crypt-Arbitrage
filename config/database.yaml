@@ -1,0 +1,22 @@
+database:
+  host: ${DB_HOST:localhost}
+  port: ${DB_PORT:5432}
+  name: ${DB_NAME:crypto_arbitrage}
+  user: ${DB_USER}
+  password: ${DB_PASSWORD}
+  
+  # Connection pool settings
+  pool_size: 10
+  max_overflow: 20
+  pool_timeout: 30
+  pool_recycle: 3600
+  
+  # Query settings
+  echo: false
+  echo_pool: false
+  
+  # SSL settings (for production)
+  ssl_mode: prefer
+  ssl_cert: null
+  ssl_key: null
+  ssl_ca: null

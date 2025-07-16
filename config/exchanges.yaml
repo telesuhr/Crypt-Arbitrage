@@ -1,0 +1,121 @@
+exchanges:
+  bitflyer:
+    name: bitFlyer
+    enabled: true
+    api:
+      base_url: https://api.bitflyer.com
+      ws_url: wss://ws.lightstream.bitflyer.com
+      endpoints:
+        ticker: /v1/ticker
+        executions: /v1/executions
+        board: /v1/board
+        balance: /v1/me/getbalance
+        orders: /v1/me/getchildorders
+        send_order: /v1/me/sendchildorder
+    rate_limits:
+      public: 500  # requests per minute
+      private: 500
+    supported_pairs:
+      - BTC_JPY
+      - ETH_JPY
+      - XRP_JPY
+    
+  bitbank:
+    name: bitbank
+    enabled: true
+    api:
+      base_url: https://public.bitbank.cc
+      private_url: https://api.bitbank.cc
+      ws_url: wss://stream.bitbank.cc
+      endpoints:
+        ticker: /{pair}/ticker
+        depth: /{pair}/depth
+        transactions: /{pair}/transactions
+        balance: /v1/user/assets
+        orders: /v1/user/spot/orders
+        order: /v1/user/spot/order
+    rate_limits:
+      public: 60
+      private: 60
+    supported_pairs:
+      - btc_jpy
+      - eth_jpy
+      - xrp_jpy
+      - mona_jpy
+      - bcc_jpy
+    
+  coincheck:
+    name: Coincheck
+    enabled: true  # 有効化
+    api:
+      base_url: https://coincheck.com/api
+      endpoints:
+        ticker: /ticker
+        trades: /trades
+        order_books: /order_books
+        balance: /accounts/balance
+        orders: /exchange/orders
+    rate_limits:
+      public: 10
+      private: 10
+    supported_pairs:
+      - btc_jpy
+      - eth_jpy
+      - etc_jpy
+      - lsk_jpy
+      - xrp_jpy
+    
+  gmo:
+    name: GMOコイン
+    enabled: true  # 有効化
+    api:
+      base_url: https://api.coin.z.com/public
+      private_url: https://api.coin.z.com/private
+      ws_url: wss://api.coin.z.com/ws
+      endpoints:
+        ticker: /v1/ticker
+        orderbooks: /v1/orderbooks
+        trades: /v1/trades
+        balance: /v1/account/assets
+        orders: /v1/orders
+        order: /v1/order
+    rate_limits:
+      public: 300
+      private: 300
+    supported_pairs:
+      - BTC_JPY
+      - ETH_JPY
+      - BCH_JPY
+      - LTC_JPY
+      - XRP_JPY
+    
+  binance:
+    name: Binance
+    enabled: false  # 口座復活後に有効化
+    api:
+      base_url: https://api.binance.com/api/v3
+      ws_url: wss://stream.binance.com:9443
+      endpoints:
+        ticker: /ticker/24hr
+        depth: /depth
+        trades: /trades
+        balance: /account
+        order: /order
+        all_orders: /allOrders
+    rate_limits:
+      weight_per_minute: 1200
+      orders_per_second: 10
+      orders_per_day: 200000
+    supported_pairs:
+      - BTCUSDT
+      - ETHUSDT
+      - XRPUSDT
+      - BTCBUSD
+      - ETHBUSD
+
+# Common settings
+common:
+  timeout: 30
+  retry_count: 3
+  retry_delay: 1
+  user_agent: CryptoArbitrageBot/1.0

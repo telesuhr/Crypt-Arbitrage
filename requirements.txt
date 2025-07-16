@@ -1,0 +1,53 @@
+# Core dependencies
+python-dotenv==1.0.0
+pyyaml==6.0.1
+
+# Database
+psycopg2-binary==2.9.9
+sqlalchemy==2.0.23
+alembic==1.13.1
+
+# Async HTTP clients
+aiohttp==3.9.1
+websockets==12.0
+httpx==0.25.2
+
+# Cryptocurrency exchange libraries
+ccxt==4.2.8
+pybitflyer==0.1.9
+# python-bitbank==0.2.13  # Not available in PyPI, will use ccxt instead
+
+# Data processing
+pandas==2.1.4
+numpy==1.26.2
+
+# Dashboard and visualization
+streamlit==1.29.0
+plotly==5.18.0
+altair==5.2.0
+
+# Utilities
+python-dateutil==2.8.2
+pytz==2023.3
+click==8.1.7
+
+# Logging and monitoring
+loguru==0.7.2
+python-json-logger==2.0.7
+
+# Security
+cryptography==41.0.7
+
+# Development tools
+pytest==7.4.3
+pytest-asyncio==0.21.1
+black==23.12.1
+flake8==6.1.0
+mypy==1.7.1
+pre-commit==3.6.0
+
+# API rate limiting
+aiolimiter==1.1.0
+
+# Scheduling
+apscheduler==3.10.4
