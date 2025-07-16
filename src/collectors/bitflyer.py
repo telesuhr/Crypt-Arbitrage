@@ -60,7 +60,8 @@ class BitFlyerClient(ExchangeClient):
             price_data = PriceData(
                 exchange_code=self.exchange_code,
                 symbol=symbol,
-                timestamp=datetime.fromisoformat(data['timestamp'].replace('Z', '+00:00')).astimezone(pytz.timezone('Asia/Tokyo')),
+                # bitFlyer APIはUTC時刻を返すが、Zサフィックスなし
+                timestamp=pytz.UTC.localize(datetime.fromisoformat(data['timestamp'])).astimezone(pytz.timezone('Asia/Tokyo')),
                 bid=Decimal(str(data['best_bid'])),
                 ask=Decimal(str(data['best_ask'])),
                 bid_size=Decimal(str(data['best_bid_size'])),
