@@ -5,6 +5,7 @@ import hashlib
 import json
 from typing import Dict, List, Optional, Any
 from datetime import datetime
+import pytz
 from decimal import Decimal
 import aiohttp
 from loguru import logger
@@ -57,7 +58,7 @@ class BitbankClient(ExchangeClient):
             data = response['data']
             
             # タイムスタンプはミリ秒単位
-            timestamp = datetime.fromtimestamp(int(data['timestamp']) / 1000)
+            timestamp = datetime.fromtimestamp(int(data['timestamp']) / 1000, tz=pytz.timezone('Asia/Tokyo'))
             
             price_data = PriceData(
                 exchange_code=self.exchange_code,
@@ -87,7 +88,7 @@ class BitbankClient(ExchangeClient):
             data = response['data']
             
             # タイムスタンプはミリ秒単位
-            timestamp = datetime.fromtimestamp(int(data['timestamp']) / 1000)
+            timestamp = datetime.fromtimestamp(int(data['timestamp']) / 1000, tz=pytz.timezone('Asia/Tokyo'))
             
             # データを正規化
             bids = [
@@ -307,7 +308,7 @@ class BitbankClient(ExchangeClient):
     
     def _parse_ws_ticker(self, data: Dict[str, Any], symbol: str) -> PriceData:
         """WebSocketのティッカーデータをパース"""
-        timestamp = datetime.fromtimestamp(int(data['timestamp']) / 1000)
+        timestamp = datetime.fromtimestamp(int(data['timestamp']) / 1000, tz=pytz.timezone('Asia/Tokyo'))
         
         return PriceData(
             exchange_code=self.exchange_code,

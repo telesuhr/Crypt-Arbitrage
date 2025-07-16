@@ -5,6 +5,7 @@ import hashlib
 import json
 from typing import Dict, List, Optional, Any
 from datetime import datetime
+import pytz
 from decimal import Decimal
 import aiohttp
 from loguru import logger
@@ -98,7 +99,7 @@ class GMOClient(ExchangeClient):
             orderbook = OrderbookData(
                 exchange_code=self.exchange_code,
                 symbol=symbol,
-                timestamp=datetime.now(),
+                timestamp=datetime.now(pytz.timezone('Asia/Tokyo')),
                 bids=bids,
                 asks=asks
             )

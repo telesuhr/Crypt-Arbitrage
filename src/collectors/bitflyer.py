@@ -4,7 +4,8 @@ import hmac
 import hashlib
 import json
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
+import pytz
 from decimal import Decimal
 import aiohttp
 from loguru import logger
@@ -59,7 +60,7 @@ class BitFlyerClient(ExchangeClient):
             price_data = PriceData(
                 exchange_code=self.exchange_code,
                 symbol=symbol,
-                timestamp=datetime.fromisoformat(data['timestamp'].replace('Z', '+00:00')),
+                timestamp=datetime.fromisoformat(data['timestamp'].replace('Z', '+00:00')).astimezone(pytz.timezone('Asia/Tokyo')),
                 bid=Decimal(str(data['best_bid'])),
                 ask=Decimal(str(data['best_ask'])),
                 bid_size=Decimal(str(data['best_bid_size'])),
@@ -95,7 +96,7 @@ class BitFlyerClient(ExchangeClient):
             orderbook = OrderbookData(
                 exchange_code=self.exchange_code,
                 symbol=symbol,
-                timestamp=datetime.now(),
+                timestamp=datetime.now(pytz.timezone('Asia/Tokyo')),
                 bids=bids,
                 asks=asks
             )
@@ -229,7 +230,7 @@ class BitFlyerClient(ExchangeClient):
                     'size': Decimal(str(order['size'])),
                     'executed_size': Decimal(str(order['executed_size'])),
                     'status': order['child_order_state'].lower(),
-                    'created_at': datetime.fromisoformat(order['child_order_date'].replace('Z', '+00:00'))
+                    'created_at': datetime.fromisoformat(order['child_order_date'].replace('Z', '+00:00')).astimezone(pytz.timezone('Asia/Tokyo'))
                 })
             
             return orders
@@ -267,7 +268,7 @@ class BitFlyerClient(ExchangeClient):
         return PriceData(
             exchange_code=self.exchange_code,
             symbol=self.denormalize_symbol(data['product_code']),
-            timestamp=datetime.fromisoformat(data['timestamp'].replace('Z', '+00:00')),
+            timestamp=datetime.fromisoformat(data['timestamp'].replace('Z', '+00:00')).astimezone(pytz.timezone('Asia/Tokyo')),
             bid=Decimal(str(data['best_bid'])),
             ask=Decimal(str(data['best_ask'])),
             bid_size=Decimal(str(data['best_bid_size'])),

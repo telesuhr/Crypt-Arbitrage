@@ -179,20 +179,20 @@ class DataCollector:
         logger.info("Starting data collector...")
         
         # スケジュールの設定
-        # 価格データ: 1秒ごと
+        # 価格データ: 5秒ごと (API制限回避のため)
         self.scheduler.add_job(
             self.collect_all_prices,
             'interval',
-            seconds=1,
+            seconds=5,
             id='price_collection',
             max_instances=1
         )
         
-        # オーダーブック: 10秒ごと
+        # オーダーブック: 30秒ごと
         self.scheduler.add_job(
             self.collect_orderbooks_periodically,
             'interval',
-            seconds=10,
+            seconds=30,
             id='orderbook_collection',
             max_instances=1
         )

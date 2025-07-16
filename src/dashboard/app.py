@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 from datetime import datetime, timedelta
+import pytz
 from decimal import Decimal
 import sys
 from pathlib import Path
@@ -53,7 +54,8 @@ time_ranges = {
     "7日間": timedelta(days=7)
 }
 time_delta = time_ranges[time_range]
-start_time = datetime.utcnow() - time_delta
+jst = pytz.timezone('Asia/Tokyo')
+start_time = datetime.now(jst) - time_delta
 
 # 自動更新
 auto_refresh = st.sidebar.checkbox("自動更新（10秒）", value=True)
@@ -84,7 +86,7 @@ with col1:
                     pair_id=pair.id
                 ).order_by(PriceTick.timestamp.desc()).first()
                 
-                if latest_tick and latest_tick.timestamp > datetime.utcnow() - timedelta(minutes=5):
+                if latest_tick and latest_tick.timestamp > datetime.now(jst) - timedelta(minutes=5):
                     latest_prices.append({
                         "取引所": exchange.name,
                         "買値": f"¥{latest_tick.ask:,.0f}",

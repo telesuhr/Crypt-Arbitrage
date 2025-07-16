@@ -5,6 +5,7 @@ import hashlib
 import json
 from typing import Dict, List, Optional, Any
 from datetime import datetime
+import pytz
 from decimal import Decimal
 import aiohttp
 from loguru import logger
@@ -63,7 +64,7 @@ class CoincheckClient(ExchangeClient):
             price_data = PriceData(
                 exchange_code=self.exchange_code,
                 symbol=symbol,
-                timestamp=datetime.fromtimestamp(int(data['timestamp'])),
+                timestamp=datetime.fromtimestamp(int(data['timestamp']), tz=pytz.timezone('Asia/Tokyo')),
                 bid=last_price,  # 簡易実装
                 ask=last_price,  # 簡易実装
                 bid_size=Decimal("0"),
@@ -98,7 +99,7 @@ class CoincheckClient(ExchangeClient):
             orderbook = OrderbookData(
                 exchange_code=self.exchange_code,
                 symbol=symbol,
-                timestamp=datetime.now(),
+                timestamp=datetime.now(pytz.timezone('Asia/Tokyo')),
                 bids=bids,
                 asks=asks
             )
