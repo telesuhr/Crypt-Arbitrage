@@ -6,6 +6,7 @@ import yaml
 from pathlib import Path
 from loguru import logger
 from sqlalchemy import and_, func
+import pytz
 
 from ..database.connection import db
 from ..database.models import (
@@ -91,7 +92,8 @@ class ArbitrageDetector:
                 return prices
             
             # 最新価格を取得（過去1分以内）
-            time_threshold = datetime.utcnow() - timedelta(minutes=1)
+            jst = pytz.timezone('Asia/Tokyo')
+            time_threshold = datetime.now(jst) - timedelta(minutes=1)
             
             # 各取引所の最新価格を取得
             subquery = session.query(
@@ -177,12 +179,18 @@ class ArbitrageDetector:
         for i, buy_exchange in enumerate(exchanges):
             for sell_exchange in exchanges[i+1:]:
                 # 買い価格と売り価格を取得
-                buy_price = prices[buy_exchange]['ask']  # 買うときはask価格
-                sell_price = prices[sell_exchange]['bid']  # 売るときはbid価格
+                buy_price = prices[buy_exchange].get('ask')  # 買うときはask価格
+                sell_price = prices[sell_exchange].get('bid')  # 売るときはbid価格
                 
                 # 逆方向もチェック
-                buy_price_rev = prices[sell_exchange]['ask']
-                sell_price_rev = prices[buy_exchange]['bid']
+                buy_price_rev = prices[sell_exchange].get('ask')
+                sell_price_rev = prices[buy_exchange].get('bid')
+                
+                # 価格データの検証
+                if not all([buy_price, sell_price, buy_price_rev, sell_price_rev]):
+                    continue
+                if any(p <= 0 for p in [buy_price, sell_price, buy_price_rev, sell_price_rev]):
+                    continue
                 
                 # より利益の大きい方向を選択
                 if sell_price > buy_price:
@@ -198,7 +206,9 @@ class ArbitrageDetector:
                     final_sell_price = sell_price_rev
                     price_diff = sell_price_rev - buy_price_rev
                 
-                # 価格差率を計算
+                # 価格差率を計算（ゼロ除算を防ぐ）
+                if final_buy_price == 0 or final_buy_price is None:
+                    continue
                 price_diff_pct = (price_diff / final_buy_price) * Decimal(100)
                 
                 # 最小利益閾値をチェック
@@ -221,6 +231,11 @@ class ArbitrageDetector:
                 
                 # 総手数料（比率）
                 total_fees = buy_fees + sell_fees + transfer_fee
+                
+                # ゼロボリュームのチェック
+                if max_volume == 0 or final_buy_price == 0:
+                    continue
+                    
                 total_fees_pct = (total_fees / (max_volume * final_buy_price)) * Decimal(100)
                 
                 # 実質利益率
@@ -287,28 +302,38 @@ class ArbitrageDetector:
     
     async def analyze_single_pair(self, pair_symbol: str):
         """単一通貨ペアのアービトラージ分析"""
-        # 最新価格を取得
-        prices = await self.get_latest_prices(pair_symbol)
-        
-        if len(prices) < 2:
-            logger.debug(f"Not enough price data for {pair_symbol}")
-            return
-        
-        # アービトラージ機会を検出
-        opportunities = self.detect_opportunities(prices, pair_symbol)
-        
-        # データベースに保存
-        if opportunities:
-            await self.save_opportunities(opportunities)
+        try:
+            # 最新価格を取得
+            prices = await self.get_latest_prices(pair_symbol)
             
-            # ログに出力
-            for opp in opportunities[:3]:  # 上位3件のみ表示
-                logger.info(
-                    f"Arbitrage opportunity: {opp['pair_symbol']} "
-                    f"{opp['buy_exchange']}({opp['buy_price']}) -> "
-                    f"{opp['sell_exchange']}({opp['sell_price']}) "
-                    f"Profit: {opp['estimated_profit_pct']:.2f}%"
-                )
+            if len(prices) < 2:
+                logger.debug(f"Not enough price data for {pair_symbol}, found {len(prices)} exchanges")
+                return
+            
+            logger.debug(f"Analyzing {pair_symbol} with price data from: {list(prices.keys())}")
+            
+            # アービトラージ機会を検出
+            opportunities = self.detect_opportunities(prices, pair_symbol)
+            
+            # データベースに保存
+            if opportunities:
+                await self.save_opportunities(opportunities)
+                
+                # ログに出力
+                for opp in opportunities[:3]:  # 上位3件のみ表示
+                    logger.info(
+                        f"Arbitrage opportunity: {opp['pair_symbol']} "
+                        f"{opp['buy_exchange']}({opp['buy_price']}) -> "
+                        f"{opp['sell_exchange']}({opp['sell_price']}) "
+                        f"Profit: {opp['estimated_profit_pct']:.2f}%"
+                    )
+            else:
+                logger.debug(f"No arbitrage opportunities found for {pair_symbol}")
+                
+        except Exception as e:
+            import traceback
+            logger.error(f"Error in analyze_single_pair for {pair_symbol}: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
     
     async def analyze_all_pairs(self):
         """全通貨ペアのアービトラージ分析"""
@@ -318,8 +343,14 @@ class ArbitrageDetector:
             pair_symbols = [pair.symbol for pair in pairs]
         
         # 並列で分析実行
+        logger.info(f"Analyzing {len(pair_symbols)} pairs: {pair_symbols}")
         tasks = [self.analyze_single_pair(symbol) for symbol in pair_symbols]
-        await asyncio.gather(*tasks, return_exceptions=True)
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # エラーをログ出力
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                logger.error(f"Error analyzing {pair_symbols[i]}: {result}")
     
     async def run_continuous_analysis(self, interval: int = 5):
         """継続的なアービトラージ分析"""

@@ -50,27 +50,40 @@ class CoincheckClient(ExchangeClient):
     
     async def get_ticker(self, symbol: str) -> Dict[str, Any]:
         """ティッカー情報を取得"""
-        # Coincheckは全ペアのティッカーを一度に返す
-        url = f"{self.base_url}/ticker"
+        # Coincheckは通貨ペアごとに異なるエンドポイントを使用
+        # BTC/JPYの場合は/ticker、それ以外は/api/rate
         
         try:
-            data = await self._request("GET", url)
-            
-            # 現在の価格情報から計算
-            last_price = Decimal(str(data['last']))
-            # Coincheckはbid/askを直接提供しないので、last価格を使用
-            # 実際の取引では板情報から取得する必要がある
+            if symbol == "BTC/JPY":
+                url = f"{self.base_url}/ticker"
+                data = await self._request("GET", url)
+                
+                # 現在の価格情報から計算
+                last_price = Decimal(str(data['last']))
+                bid = Decimal(str(data['bid']))
+                ask = Decimal(str(data['ask']))
+            else:
+                # 他の通貨ペアはrateエンドポイントを使用
+                normalized_symbol = self.normalize_symbol(symbol)
+                url = f"{self.base_url}/api/rate/{normalized_symbol}"
+                data = await self._request("GET", url)
+                
+                # rateエンドポイントはbuy/sell価格のみ返す
+                last_price = Decimal(str(data.get('rate', 0)))
+                # 実際の取引では板情報から取得する必要がある
+                bid = last_price
+                ask = last_price
             
             price_data = PriceData(
                 exchange_code=self.exchange_code,
                 symbol=symbol,
-                timestamp=datetime.fromtimestamp(int(data['timestamp']), tz=pytz.timezone('Asia/Tokyo')),
-                bid=last_price,  # 簡易実装
-                ask=last_price,  # 簡易実装
+                timestamp=datetime.fromtimestamp(int(data.get('timestamp', datetime.now().timestamp())), tz=pytz.timezone('Asia/Tokyo')),
+                bid=bid,
+                ask=ask,
                 bid_size=Decimal("0"),
                 ask_size=Decimal("0"),
                 last_price=last_price,
-                volume_24h=Decimal(str(data['volume']))
+                volume_24h=Decimal(str(data.get('volume', 0)))
             )
             
             return price_data.to_dict()

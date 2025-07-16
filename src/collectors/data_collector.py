@@ -69,6 +69,11 @@ class DataCollector:
     
     async def collect_price_data(self, exchange_code: str, symbol: str):
         """単一の通貨ペアの価格データを収集"""
+        # Coincheckの一時的な対応 - BTCペア以外はスキップ
+        if exchange_code == 'coincheck' and symbol != 'BTC/JPY':
+            logger.debug(f"Skipping {symbol} for Coincheck (only BTC/JPY supported)")
+            return
+        
         try:
             exchange_info = self.exchanges[exchange_code]
             client = exchange_info['client']

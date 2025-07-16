@@ -81,6 +81,10 @@ with col1:
             exchanges = session.query(Exchange).filter_by(is_active=True).all()
             
             for exchange in exchanges:
+                # Binanceはスキップ
+                if exchange.code == 'binance':
+                    continue
+                    
                 latest_tick = session.query(PriceTick).filter_by(
                     exchange_id=exchange.id,
                     pair_id=pair.id
@@ -98,7 +102,12 @@ with col1:
                 df_prices = pd.DataFrame(latest_prices)
                 st.dataframe(df_prices, use_container_width=True)
             else:
-                st.info("価格データがありません")
+                # デバッグ情報を追加
+                active_exchanges = [e.name for e in exchanges if e.code != 'binance']
+                st.info(f"価格データがありません")
+                st.caption(f"アクティブな取引所: {', '.join(active_exchanges)}")
+                st.caption(f"選択された通貨ペア: {pair.symbol if pair else 'None'}")
+                st.caption(f"データ取得時間範囲: 過去5分")
 
 # アービトラージ機会
 with col2:
