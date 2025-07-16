@@ -1,0 +1,37 @@
+{
+  "arbitrage_alerts": {
+    "enabled": true,
+    "min_profit_threshold": 0.05,
+    "min_profit_amount": 1000,
+    "cooldown_minutes": 5,
+    "max_notifications_per_hour": 20
+  },
+  "price_alerts": {
+    "enabled": false,
+    "symbols": {
+      "BTC/JPY": {
+        "upper_threshold": 20000000,
+        "lower_threshold": 15000000
+      }
+    }
+  },
+  "system_alerts": {
+    "enabled": true,
+    "alert_types": [
+      "ERROR",
+      "WARNING"
+    ],
+    "data_collection_errors": true,
+    "analysis_errors": true,
+    "api_failures": true
+  },
+  "discord": {
+    "enabled": true,
+    "use_embeds": true,
+    "quiet_hours": {
+      "enabled": true,
+      "start": "00:00",
+      "end": "09:00"
+    }
+  }
+}

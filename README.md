@@ -11,6 +11,7 @@
 - **リアルタイム価格監視**: 1秒ごとに最新価格を取得
 - **マルチ取引所対応**: 4つの主要国内取引所に対応
 - **自動アービトラージ検出**: 手数料を考慮した収益性計算
+- **Discord通知機能**: アービトラージ機会をDiscordで即座にiPhoneに通知
 - **Webダッシュボード**: リアルタイムで価格差と機会を可視化
 - **データベース記録**: PostgreSQLで全データを保存・分析
 
@@ -38,6 +39,10 @@ crypto_arbitrage/
 │   │   └── gmo.py
 │   ├── analyzers/       # アービトラージ分析エンジン
 │   │   └── arbitrage_detector.py
+│   ├── notifications/   # LINE通知システム
+│   │   ├── line_notify.py
+│   │   ├── config.py
+│   │   └── manager.py
 │   ├── database/        # データベース関連
 │   │   ├── connection.py
 │   │   └── models.py
@@ -81,11 +86,35 @@ python src/main.py setup-db
 
 ### 3. API設定
 
-`.env`ファイルを作成し、各取引所のAPIキーを設定：
+`.env`ファイルを作成し、各取引所のAPIキーとLINE通知設定を行う：
 
 ```bash
 cp .env.example .env
 # .envファイルを編集してAPIキーを設定
+```
+
+#### Discord通知の設定（推奨）
+
+**🚀 自動セットアップ（初心者向け）:**
+```bash
+# 対話式セットアップガイド実行
+python scripts/setup_discord.py
+```
+
+**📖 詳細ガイド:**
+Discordが初めての方は [Discord設定ガイド](docs/discord_setup_guide.md) をご覧ください。
+
+**⚡ 手動設定（上級者向け）:**
+1. Discordサーバーでウェブフックを作成
+2. `.env`ファイルに`DISCORD_WEBHOOK_URL`を設定
+3. 通知設定を確認・変更
+
+```bash
+# Discord通知設定の確認
+python scripts/manage_notifications.py --show
+
+# 通知テスト
+python scripts/test_discord_notify.py
 ```
 
 ### 4. 接続テスト
@@ -148,7 +177,57 @@ python src/main.py dashboard
 |-----------|------|
 | `scripts/check_arbitrage.py` | 現在のアービトラージ機会を確認 |
 | `scripts/monitor_arbitrage.py` | リアルタイムアービトラージ監視 |
+| `scripts/test_discord_notify.py` | Discord通知のテスト |
+| `scripts/manage_notifications.py` | 通知設定の管理 |
 | `analysis/arbitrage_analysis.ipynb` | Jupyter Notebookでの詳細分析 |
+
+## Discord通知機能
+
+### 通知設定の管理
+
+```bash
+# 現在の設定を確認
+python scripts/manage_notifications.py --show
+
+# 通知を有効化
+python scripts/manage_notifications.py --enable
+
+# 利益率閾値を0.1%に設定
+python scripts/manage_notifications.py --threshold 0.1
+
+# 利益額閾値を2000円に設定
+python scripts/manage_notifications.py --amount 2000
+
+# 静寂時間を設定（23:00-07:00）
+python scripts/manage_notifications.py --quiet 23:00 07:00
+
+# テスト通知を送信
+python scripts/manage_notifications.py --test
+```
+
+### 通知条件
+
+- **利益率閾値**: デフォルト0.05%以上
+- **利益額閾値**: デフォルト1000円以上
+- **クールダウン**: 同一ペアに5分間の制限
+- **1時間制限**: 最大20件まで
+- **静寂時間**: 設定可能（デフォルト無効）
+
+### 通知内容
+
+- アービトラージ機会の詳細（リッチ埋め込み形式）
+- 予想利益率・利益額
+- 取引所と価格情報
+- 通貨ペア
+- 検出時刻
+- 利益率に応じたカラーコーディング
+
+### iPhone通知設定
+
+1. Discord iPhoneアプリをインストール
+2. 設定 → 通知 → プッシュ通知を有効化
+3. サーバー通知設定で該当チャンネルを有効化
+4. 即座にアービトラージ機会をiPhoneで受信可能
 
 ## アーキテクチャ
 
@@ -168,7 +247,13 @@ python src/main.py dashboard
    - 手数料を考慮した収益性評価
    - アービトラージ機会の検出
 
-4. **可視化層**
+4. **通知層**
+   - Discord Webhook APIによる即座の通知
+   - 頻度制限とクールダウン管理
+   - 通知履歴管理
+   - iPhoneプッシュ通知対応
+
+5. **可視化層**
    - Streamlitベースのダッシュボード
    - リアルタイムチャート
    - 機会アラート

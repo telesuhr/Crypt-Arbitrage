@@ -13,6 +13,7 @@ from ..database.models import (
     Exchange, CurrencyPair, PriceTick, ArbitrageOpportunity,
     OrderbookSnapshot, Balance
 )
+from ..notifications.manager import notification_manager
 
 
 class ArbitrageDetector:
@@ -318,6 +319,26 @@ class ArbitrageDetector:
             # データベースに保存
             if opportunities:
                 await self.save_opportunities(opportunities)
+                
+                # LINE通知を送信（上位機会のみ）
+                for opp in opportunities[:1]:  # 最も利益率の高い機会のみ通知
+                    try:
+                        # 通知用データを準備
+                        notification_data = {
+                            'profit_pct': float(opp['estimated_profit_pct']),
+                            'profit': float(opp['max_volume'] * opp['buy_price'] * opp['estimated_profit_pct'] / 100),
+                            'buy_exchange': opp['buy_exchange'],
+                            'sell_exchange': opp['sell_exchange'],
+                            'buy_price': float(opp['buy_price']),
+                            'sell_price': float(opp['sell_price']),
+                            'pair_symbol': opp['pair_symbol']
+                        }
+                        
+                        # 通知を送信
+                        notification_manager.send_arbitrage_alert(notification_data)
+                        
+                    except Exception as e:
+                        logger.error(f"Failed to send notification for {opp['pair_symbol']}: {e}")
                 
                 # ログに出力
                 for opp in opportunities[:3]:  # 上位3件のみ表示
