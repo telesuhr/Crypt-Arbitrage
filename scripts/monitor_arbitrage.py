@@ -34,11 +34,12 @@ class ArbitrageMonitor:
             'start_time': datetime.now(self.jst)
         }
         
-        # 通貨ペア情報を取得
+        # 通貨ペアIDを取得（オブジェクトではなくIDのみ保存）
         with db.get_session() as session:
-            self.pair = session.query(CurrencyPair).filter_by(symbol=pair_symbol).first()
-            if not self.pair:
+            pair = session.query(CurrencyPair).filter_by(symbol=pair_symbol).first()
+            if not pair:
                 raise ValueError(f"通貨ペア {pair_symbol} が見つかりません")
+            self.pair_id = pair.id
     
     def clear_screen(self):
         """画面をクリア"""
@@ -57,7 +58,7 @@ class ArbitrageMonitor:
                     
                 latest_tick = session.query(PriceTick).filter_by(
                     exchange_id=exchange.id,
-                    pair_id=self.pair.id
+                    pair_id=self.pair_id
                 ).order_by(PriceTick.timestamp.desc()).first()
                 
                 if latest_tick and latest_tick.timestamp > five_minutes_ago:
@@ -108,7 +109,7 @@ class ArbitrageMonitor:
             start_time = datetime.now(self.jst) - timedelta(minutes=minutes)
             
             opportunities = session.query(ArbitrageOpportunity).filter(
-                ArbitrageOpportunity.pair_id == self.pair.id,
+                ArbitrageOpportunity.pair_id == self.pair_id,
                 ArbitrageOpportunity.timestamp > start_time,
                 ArbitrageOpportunity.estimated_profit_pct > 0
             ).order_by(ArbitrageOpportunity.timestamp.desc()).limit(10).all()

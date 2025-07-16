@@ -96,11 +96,12 @@ def get_historical_arbitrage(pair_symbol="BTC/JPY", hours=1):
         if not pair:
             return []
         
+        pair_id = pair.id  # IDを保存
         jst = pytz.timezone('Asia/Tokyo')
         start_time = datetime.now(jst) - timedelta(hours=hours)
         
         opportunities = session.query(ArbitrageOpportunity).filter(
-            ArbitrageOpportunity.pair_id == pair.id,
+            ArbitrageOpportunity.pair_id == pair_id,
             ArbitrageOpportunity.timestamp > start_time,
             ArbitrageOpportunity.estimated_profit_pct > 0
         ).order_by(ArbitrageOpportunity.timestamp.desc()).limit(20).all()
@@ -202,19 +203,20 @@ def main():
         pair = session.query(CurrencyPair).filter_by(symbol="BTC/JPY").first()
         
         if pair:
+            pair_id = pair.id  # IDを保存
             for exchange in exchanges:
                 if exchange.code == 'binance':
                     continue
                     
                 tick_count = session.query(PriceTick).filter(
                     PriceTick.exchange_id == exchange.id,
-                    PriceTick.pair_id == pair.id,
+                    PriceTick.pair_id == pair_id,
                     PriceTick.timestamp > one_hour_ago
                 ).count()
                 
                 latest_tick = session.query(PriceTick).filter_by(
                     exchange_id=exchange.id,
-                    pair_id=pair.id
+                    pair_id=pair_id
                 ).order_by(PriceTick.timestamp.desc()).first()
                 
                 if latest_tick:
