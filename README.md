@@ -16,12 +16,15 @@
 
 ## 対応取引所
 
-| 取引所 | Maker手数料 | Taker手数料 | 送金手数料 | 特徴 |
-|--------|------------|------------|-----------|------|
-| bitFlyer | 0.15% | 0.15% | BTC: 0.0004 | 国内最大級の取引量 |
-| bitbank | -0.02% | 0.12% | BTC: 0.0006 | Maker手数料がマイナス |
-| Coincheck | 0% | 0% | BTC: 0.0005 | 取引手数料無料 |
-| GMOコイン | -0.01% | 0.04% | **無料** | 送金手数料無料 |
+| 取引所 | Maker手数料 | Taker手数料 | 送金手数料 | 特徴 | API対応 |
+|--------|------------|------------|-----------|------|--------|
+| bitFlyer | 0.15% | 0.15% | BTC: 0.0004 | 国内最大級の取引量 | ✅ |
+| bitbank | -0.02% | 0.12% | BTC: 0.0006 | Maker手数料がマイナス | ✅ |
+| Coincheck | 0% | 0% | BTC: 0.0005 | 取引手数料無料 | ✅ |
+| GMOコイン | -0.01% | 0.04% | **無料** | 送金手数料無料 | ✅ |
+| SBI VCトレード | -0.01% | 0.05% | BTC: 0.0007 | SBIグループ運営 | ❌ |
+
+**注意**: SBI VCトレードは現在公開APIを提供していないため、自動データ取得はできません。
 
 ## システム構成
 
@@ -107,6 +110,19 @@ python src/main.py collect
 python src/main.py analyze
 ```
 
+### リアルタイム監視
+
+```bash
+# ターミナルでのリアルタイム監視
+python scripts/monitor_arbitrage.py
+
+# 現在の状況を一回だけ確認
+python scripts/check_arbitrage.py
+
+# Jupyter Notebookでの詳細分析
+jupyter notebook analysis/arbitrage_analysis.ipynb
+```
+
 ### ダッシュボード起動
 
 ```bash
@@ -125,6 +141,14 @@ python src/main.py dashboard
 | `analyze` | アービトラージ分析開始 |
 | `dashboard` | Webダッシュボード起動 |
 | `test-ticker <exchange> <symbol>` | 特定取引所の価格取得テスト |
+
+### 分析スクリプト
+
+| スクリプト | 説明 |
+|-----------|------|
+| `scripts/check_arbitrage.py` | 現在のアービトラージ機会を確認 |
+| `scripts/monitor_arbitrage.py` | リアルタイムアービトラージ監視 |
+| `analysis/arbitrage_analysis.ipynb` | Jupyter Notebookでの詳細分析 |
 
 ## アーキテクチャ
 
