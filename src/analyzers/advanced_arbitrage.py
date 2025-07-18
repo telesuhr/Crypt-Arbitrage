@@ -366,7 +366,7 @@ class AdvancedArbitrageAnalyzer:
             
             # 通知送信
             if opp['profit_percentage'] >= float(self.min_profit_threshold * 100):
-                await discord_notifier.send_arbitrage_alert(opp)
+                discord_notifier.send_arbitrage_alert(opp)
                 self.notified_opportunities[key] = now
                 logger.info(f"Arbitrage opportunity notified: {opp['type']} {opp['pair']} "
                           f"{opp['profit_percentage']:.2f}%")

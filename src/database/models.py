@@ -4,6 +4,8 @@ from typing import Optional, Dict, Any
 from sqlalchemy import Column, Integer, String, DECIMAL, DateTime, Boolean, ForeignKey, JSON, Index
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
+import pytz
+from loguru import logger
 
 Base = declarative_base()
 
@@ -56,7 +58,8 @@ class PriceTick(Base):
     ask = Column(DECIMAL(20, 8))
     bid_size = Column(DECIMAL(20, 8))
     ask_size = Column(DECIMAL(20, 8))
-    last_price = Column(DECIMAL(20, 8))
+    last = Column(DECIMAL(20, 8))  # 最新価格（別名）
+    last_price = Column(DECIMAL(20, 8))  # 最新価格
     volume_24h = Column(DECIMAL(20, 8))
     
     exchange = relationship("Exchange")
@@ -169,20 +172,37 @@ def get_or_create_pair(session, symbol: str) -> Optional[CurrencyPair]:
 
 def save_price_tick(session, exchange_code: str, symbol: str, price_data: Dict[str, Any]):
     """価格データを保存"""
-    exchange = get_or_create_exchange(session, exchange_code)
-    pair = get_or_create_pair(session, symbol)
-    
-    if exchange and pair:
-        tick = PriceTick(
-            exchange_id=exchange.id,
-            pair_id=pair.id,
-            timestamp=price_data['timestamp'],
-            bid=Decimal(str(price_data['bid'])),
-            ask=Decimal(str(price_data['ask'])),
-            bid_size=Decimal(str(price_data['bid_size'])),
-            ask_size=Decimal(str(price_data['ask_size'])),
-            last_price=Decimal(str(price_data.get('last_price', 0))),
-            volume_24h=Decimal(str(price_data.get('volume_24h', 0)))
-        )
-        session.add(tick)
-        session.commit()
+    try:
+        exchange = get_or_create_exchange(session, exchange_code)
+        pair = get_or_create_pair(session, symbol)
+        
+        if exchange and pair:
+            # タイムスタンプの処理
+            timestamp = price_data.get('timestamp')
+            if not timestamp:
+                timestamp = datetime.now(pytz.UTC)
+            
+            # bid_sizeとask_sizeの処理（複数のフィールド名に対応）
+            bid_size = price_data.get('bid_size') or price_data.get('bid_volume')
+            ask_size = price_data.get('ask_size') or price_data.get('ask_volume')
+            
+            # last_priceの処理（複数のフィールド名に対応）
+            last_price = price_data.get('last_price') or price_data.get('last') or 0
+            
+            tick = PriceTick(
+                exchange_id=exchange.id,
+                pair_id=pair.id,
+                timestamp=timestamp,
+                bid=Decimal(str(price_data['bid'])),
+                ask=Decimal(str(price_data['ask'])),
+                bid_size=Decimal(str(bid_size)) if bid_size else None,
+                ask_size=Decimal(str(ask_size)) if ask_size else None,
+                last=Decimal(str(last_price)),
+                last_price=Decimal(str(last_price)),
+                volume_24h=Decimal(str(price_data.get('volume_24h', price_data.get('volume', 0))))
+            )
+            session.add(tick)
+            session.commit()
+    except Exception as e:
+        logger.error(f"Failed to save price tick for {exchange_code} {symbol}: {e}")
+        session.rollback()
