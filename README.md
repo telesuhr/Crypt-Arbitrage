@@ -2,20 +2,37 @@
 
 日本の仮想通貨取引所間のアービトラージ機会を検出・分析するシステム
 
+## 🚀 クイックスタート（3ステップ）
+
+```bash
+# 1. データ収集を開始（必須・バックグラウンド推奨）
+nohup python src/main.py collect > logs/collector.log 2>&1 &
+
+# 2. アービトラージ監視を開始（メイン機能）
+python scripts/production/monitor_advanced_arbitrage.py
+
+# 3. Discord通知を確認（自動送信されます）
+```
+
+詳細は [📚 QUICKSTART.md](QUICKSTART.md) を参照
+
 ## 概要
 
-このシステムは、複数の仮想通貨取引所（bitFlyer、bitbank、Coincheck、GMOコイン）から価格データをリアルタイムで収集し、取引所間の価格差を利用したアービトラージ機会を自動検出します。
+このシステムは、複数の仮想通貨取引所（bitFlyer、bitbank、Coincheck、GMOコイン、Bybit、Binance）から価格データをリアルタイムで収集し、取引所間の価格差を利用したアービトラージ機会を自動検出します。
 
 ## 主な機能
 
-- **リアルタイム価格監視**: 1秒ごとに最新価格を取得
-- **マルチ取引所対応**: 4つの主要国内取引所に対応
-- **自動アービトラージ検出**: 手数料を考慮した収益性計算
+- **リアルタイム価格監視**: 5秒ごとに最新価格を取得
+- **マルチ取引所対応**: 国内4取引所 + 海外2取引所（Bybit、Binance）
+- **高度なアービトラージ検出**: 直接・クロスレート・USD建て・三角裁定に対応
 - **Discord通知機能**: アービトラージ機会をDiscordで即座にiPhoneに通知
 - **Webダッシュボード**: リアルタイムで価格差と機会を可視化
 - **データベース記録**: PostgreSQLで全データを保存・分析
+- **為替レート自動変換**: USDT建て価格を自動的にJPY換算
 
 ## 対応取引所
+
+### 国内取引所
 
 | 取引所 | Maker手数料 | Taker手数料 | 送金手数料 | 特徴 | API対応 |
 |--------|------------|------------|-----------|------|--------|
@@ -23,34 +40,55 @@
 | bitbank | -0.02% | 0.12% | BTC: 0.0006 | Maker手数料がマイナス | ✅ |
 | Coincheck | 0% | 0% | BTC: 0.0005 | 取引手数料無料 | ✅ |
 | GMOコイン | -0.01% | 0.04% | **無料** | 送金手数料無料 | ✅ |
-| SBI VCトレード | -0.01% | 0.05% | BTC: 0.0007 | SBIグループ運営 | ❌ |
 
-**注意**: SBI VCトレードは現在公開APIを提供していないため、自動データ取得はできません。
+### 海外取引所
+
+| 取引所 | Maker手数料 | Taker手数料 | 特徴 | 通貨ペア |
+|--------|------------|------------|------|---------|
+| Bybit | 0.1% | 0.1% | USDT建て、高流動性 | BTC/USDT等 |
+| Binance | 0.1% | 0.1% | JPY建て直接取引可能 | BTC/JPY、BTC/USDT等 |
 
 ## システム構成
 
 ```
-crypto_arbitrage/
-├── src/
-│   ├── collectors/      # 取引所APIクライアント
-│   │   ├── bitflyer.py
-│   │   ├── bitbank.py
-│   │   ├── coincheck.py
-│   │   └── gmo.py
-│   ├── analyzers/       # アービトラージ分析エンジン
-│   │   └── arbitrage_detector.py
-│   ├── notifications/   # LINE通知システム
-│   │   ├── line_notify.py
-│   │   ├── config.py
-│   │   └── manager.py
-│   ├── database/        # データベース関連
-│   │   ├── connection.py
-│   │   └── models.py
-│   └── dashboard/       # Webダッシュボード
-│       └── app.py
-├── config/              # 設定ファイル
-├── scripts/             # セットアップスクリプト
-└── requirements.txt     # 依存パッケージ
+Crypt/
+├── src/                         # コアアプリケーション
+│   ├── main.py                 # メインエントリポイント
+│   ├── collectors/             # 取引所APIクライアント
+│   │   ├── base.py            # 基底クラス
+│   │   ├── bitflyer.py        # bitFlyer
+│   │   ├── bitbank.py         # bitbank
+│   │   ├── coincheck.py       # Coincheck
+│   │   ├── gmo.py             # GMOコイン
+│   │   ├── bybit.py           # Bybit（国際取引所）
+│   │   ├── binance.py         # Binance（国際取引所）
+│   │   └── data_collector.py  # 統合コレクター
+│   ├── analyzers/              # アービトラージ分析エンジン
+│   │   ├── arbitrage_detector.py    # 基本的な検出
+│   │   └── advanced_arbitrage.py    # 高度な分析（三角裁定等）
+│   ├── notifications/          # 通知システム
+│   │   ├── discord_notify.py  # Discord通知
+│   │   ├── line_notify.py     # LINE通知
+│   │   ├── config.py          # 通知設定
+│   │   └── manager.py         # 通知マネージャー
+│   ├── database/               # データベース関連
+│   │   ├── connection.py      # DB接続
+│   │   └── models.py          # データモデル
+│   └── dashboard/              # Webダッシュボード
+│       └── app.py             # Streamlitアプリ
+├── scripts/                    # 運用・管理スクリプト
+│   ├── monitor_advanced_arbitrage.py  # 本番監視（推奨）
+│   ├── check_arbitrage.py            # 状況確認
+│   ├── manage_notifications.py       # 通知管理
+│   └── その他...                    # セットアップ・テスト用
+├── config/                     # 設定ファイル
+│   ├── database.yaml          # DB設定
+│   ├── exchanges.yaml         # 取引所設定
+│   └── notifications.json     # 通知設定
+├── docs/                       # ドキュメント
+├── logs/                       # ログファイル
+├── analysis/                   # 分析ノートブック
+└── requirements.txt            # 依存パッケージ
 ```
 
 ## セットアップ
@@ -125,39 +163,57 @@ python src/main.py test-connection
 
 ## 使用方法
 
-### データ収集の開始
+### 🚀 クイックスタート（推奨）
+
+3つのターミナルで以下を実行:
 
 ```bash
 # ターミナル1: 価格データ収集
 python src/main.py collect
-```
 
-### アービトラージ分析
+# ターミナル2: 高度なアービトラージ監視（リッチUI付き）
+python scripts/monitor_advanced_arbitrage.py
 
-```bash
-# ターミナル2: アービトラージ検出
-python src/main.py analyze
-```
-
-### リアルタイム監視
-
-```bash
-# ターミナルでのリアルタイム監視
-python scripts/monitor_arbitrage.py
-
-# 現在の状況を一回だけ確認
-python scripts/check_arbitrage.py
-
-# Jupyter Notebookでの詳細分析
-jupyter notebook analysis/arbitrage_analysis.ipynb
-```
-
-### ダッシュボード起動
-
-```bash
 # ターミナル3: Webダッシュボード
 python src/main.py dashboard
 # ブラウザで http://localhost:8501 にアクセス
+```
+
+### 📊 個別機能の使用
+
+#### データ収集
+
+```bash
+# 価格データ収集を開始
+python src/main.py collect
+```
+
+#### アービトラージ分析
+
+```bash
+# 基本的なアービトラージ検出（バックグラウンド用）
+python src/main.py analyze
+
+# 高度なリアルタイム監視（推奨）
+python scripts/monitor_advanced_arbitrage.py
+
+# 現在の状況を一回だけ確認
+python scripts/check_arbitrage.py
+```
+
+#### ダッシュボード
+
+```bash
+# Webダッシュボード起動
+python src/main.py dashboard
+# ブラウザで http://localhost:8501 にアクセス
+```
+
+#### 分析・レポート
+
+```bash
+# Jupyter Notebookでの詳細分析
+jupyter notebook analysis/arbitrage_analysis.ipynb
 ```
 
 ## コマンド一覧
@@ -171,15 +227,35 @@ python src/main.py dashboard
 | `dashboard` | Webダッシュボード起動 |
 | `test-ticker <exchange> <symbol>` | 特定取引所の価格取得テスト |
 
-### 分析スクリプト
+### 運用スクリプト
 
-| スクリプト | 説明 |
-|-----------|------|
-| `scripts/check_arbitrage.py` | 現在のアービトラージ機会を確認 |
-| `scripts/monitor_arbitrage.py` | リアルタイムアービトラージ監視 |
-| `scripts/test_discord_notify.py` | Discord通知のテスト |
-| `scripts/manage_notifications.py` | 通知設定の管理 |
-| `analysis/arbitrage_analysis.ipynb` | Jupyter Notebookでの詳細分析 |
+#### 📈 監視・分析
+
+| スクリプト | 説明 | 使用場面 |
+|-----------|------|----------|
+| `scripts/monitor_advanced_arbitrage.py` | **高度なアービトラージ監視（推奨）** | 本番運用での常時監視 |
+| `scripts/check_arbitrage.py` | 現在のアービトラージ機会を確認 | スポット確認 |
+| `scripts/readonly_monitor.py` | 読み取り専用監視 | 別PC/タブレットからの監視 |
+| `analysis/arbitrage_analysis.ipynb` | Jupyter Notebookでの詳細分析 | 履歴データ分析 |
+
+#### ⚙️ 設定・管理
+
+| スクリプト | 説明 | 使用場面 |
+|-----------|------|----------|
+| `scripts/manage_notifications.py` | 通知設定の管理 | 通知条件の調整 |
+| `scripts/manage_tasks.py` | タスク管理 | 定期実行タスクの設定 |
+| `scripts/add_currency_pair.py` | 通貨ペアの追加 | 新規通貨ペア監視 |
+| `scripts/enable_all_pairs.py` | 全通貨ペアの有効化 | 一括設定 |
+| `scripts/add_bybit_exchange.py` | Bybit取引所の追加 | 取引所拡張 |
+
+#### 🧪 テスト・検証（初回セットアップ時）
+
+| スクリプト | 説明 | 使用場面 |
+|-----------|------|----------|
+| `scripts/test_discord_notify.py` | Discord通知のテスト | 初期設定確認 |
+| `scripts/test_postgresql_connection.py` | DB接続テスト | DB設定確認 |
+| `scripts/test_binance_connection.py` | Binance API接続テスト | API設定確認 |
+| `scripts/setup_discord.py` | Discord初期設定 | 初回のみ |
 
 ## Discord通知機能
 
@@ -306,6 +382,33 @@ python scripts/manage_notifications.py --test
 ## ライセンス
 
 MIT License
+
+## メンテナンス
+
+### プロジェクトの整理
+
+スクリプトファイルを用途別に整理するには：
+
+```bash
+# スクリプトの自動整理
+bash scripts/organize_scripts.sh
+```
+
+これにより、スクリプトが以下のように整理されます：
+- `scripts/production/` - 本番運用スクリプト
+- `scripts/test/` - テスト・検証スクリプト  
+- `scripts/setup/` - 初期設定スクリプト
+- `scripts/archive/` - 非推奨スクリプト
+
+### ログファイルの管理
+
+```bash
+# 7日以上古いログを削除
+find logs/ -name "*.log" -mtime +7 -delete
+
+# ログサイズの確認
+du -sh logs/
+```
 
 ## 作者
 
