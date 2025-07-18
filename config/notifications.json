@@ -1,7 +1,7 @@
 {
   "arbitrage_alerts": {
     "enabled": true,
-    "min_profit_threshold": 0.05,
+    "min_profit_threshold": 0.1,
     "min_profit_amount": 1000,
     "cooldown_minutes": 5,
     "max_notifications_per_hour": 20

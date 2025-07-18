@@ -11,7 +11,7 @@ from loguru import logger
 
 from ..database.connection import db
 from ..database.models import PriceTick, Exchange, CurrencyPair
-from ..notifications.discord_notify import discord_notifier
+from ..notifications.manager import notification_manager
 
 
 class AdvancedArbitrageAnalyzer:
@@ -385,9 +385,12 @@ class AdvancedArbitrageAnalyzer:
                 if now - last_notified < self.notification_cooldown:
                     continue
             
-            # 通知送信
-            if opp['profit_percentage'] >= float(self.min_profit_threshold * 100):
-                discord_notifier.send_arbitrage_alert(opp)
+            # 通知送信 - notification_managerを使用してしきい値チェック
+            # profit_pctフィールドを追加（profit_percentageと同じ値）
+            opp['profit_pct'] = opp['profit_percentage']
+            
+            # notification_managerが適切なしきい値チェックを行う
+            if notification_manager.send_arbitrage_alert(opp):
                 self.notified_opportunities[key] = now
                 logger.info(f"Arbitrage opportunity notified: {opp['type']} {opp['pair']} "
                           f"{opp['profit_percentage']:.2f}%")
