@@ -94,32 +94,42 @@ class AdvancedArbitrageAnalyzer:
                 PriceTick.timestamp.desc()
             )
             
-            # 通貨ペアごとにグループ化
+            # 通貨ペアごとにグループ化（取引所ごとに最新データのみ保持）
             price_data = {}
             for tick, exchange_code, exchange_name, pair_symbol in query:
                 if pair_symbol not in price_data:
-                    price_data[pair_symbol] = []
+                    price_data[pair_symbol] = {}
                 
-                price_data[pair_symbol].append({
-                    'exchange_code': exchange_code,
-                    'exchange_name': exchange_name,
-                    'bid': tick.bid,
-                    'ask': tick.ask,
-                    'timestamp': tick.timestamp
-                })
+                # 各取引所の最新データのみを保持（古いデータは上書き）
+                if exchange_code not in price_data[pair_symbol] or \
+                   tick.timestamp > price_data[pair_symbol][exchange_code]['timestamp']:
+                    price_data[pair_symbol][exchange_code] = {
+                        'exchange_code': exchange_code,
+                        'exchange_name': exchange_name,
+                        'bid': tick.bid,
+                        'ask': tick.ask,
+                        'timestamp': tick.timestamp
+                    }
             
             # 各通貨ペアでアービトラージ機会を検出
-            for pair_symbol, exchanges in price_data.items():
-                if len(exchanges) < 2:
+            for pair_symbol, exchanges_dict in price_data.items():
+                if len(exchanges_dict) < 2:
                     continue
                 
+                # 取引所のリストを作成
+                exchanges_list = list(exchanges_dict.values())
+                
                 # 全ての組み合わせをチェック
-                for i in range(len(exchanges)):
-                    for j in range(i + 1, len(exchanges)):
+                for i in range(len(exchanges_list)):
+                    for j in range(i + 1, len(exchanges_list)):
+                        # 同じ取引所同士は比較しない
+                        if exchanges_list[i]['exchange_code'] == exchanges_list[j]['exchange_code']:
+                            continue
+                            
                         opportunity = self._check_arbitrage_opportunity(
                             pair_symbol,
-                            exchanges[i],
-                            exchanges[j],
+                            exchanges_list[i],
+                            exchanges_list[j],
                             'direct'
                         )
                         
@@ -226,11 +236,22 @@ class AdvancedArbitrageAnalyzer:
                 ).all()
                 
                 if len(prices) >= 2:
-                    # 価格差分析
-                    for i in range(len(prices)):
-                        for j in range(i + 1, len(prices)):
-                            tick1, code1, name1 = prices[i]
-                            tick2, code2, name2 = prices[j]
+                    # 各取引所の最新データのみを保持
+                    latest_prices = {}
+                    for tick, code, name in prices:
+                        if code not in latest_prices or tick.timestamp > latest_prices[code][0].timestamp:
+                            latest_prices[code] = (tick, code, name)
+                    
+                    # 異なる取引所間でのみ比較
+                    price_list = list(latest_prices.values())
+                    for i in range(len(price_list)):
+                        for j in range(i + 1, len(price_list)):
+                            tick1, code1, name1 = price_list[i]
+                            tick2, code2, name2 = price_list[j]
+                            
+                            # 同じ取引所同士は比較しない
+                            if code1 == code2:
+                                continue
                             
                             opportunity = self._check_arbitrage_opportunity(
                                 pair.symbol,

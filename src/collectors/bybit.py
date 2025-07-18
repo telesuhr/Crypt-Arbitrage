@@ -207,6 +207,8 @@ class BybitCollector(ExchangeClient):
         for data in collected_data:
             if isinstance(data, dict) and data:
                 results.append(data)
+            elif isinstance(data, Exception):
+                logger.debug(f"Error collecting data: {data}")
         
         return results
     
