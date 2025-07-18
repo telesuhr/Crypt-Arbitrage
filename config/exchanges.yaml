@@ -89,29 +89,70 @@ exchanges:
       - LTC_JPY
       - XRP_JPY
     
+  bybit:
+    name: Bybit
+    enabled: true
+    api:
+      base_url: https://api.bybit.com
+      ws_url: wss://stream.bybit.com/v5/public
+      endpoints:
+        server_time: /v5/market/time
+        ticker: /v5/market/tickers
+        orderbook: /v5/market/orderbook
+        kline: /v5/market/kline
+        balance: /v5/account/wallet-balance
+        order: /v5/order/create
+        query_order: /v5/order/realtime
+    rate_limits:
+      public: 50  # requests per second
+      private: 10  # requests per second
+    supported_pairs:
+      - BTCUSDT
+      - ETHUSDT
+      - XRPUSDT
+      - LTCUSDT
+      - BCHUSDT
+      - ETCUSDT
+    pair_type: usdt  # USDT建て
+    
   binance:
     name: Binance
-    enabled: false  # 口座復活後に有効化
+    enabled: true  # 有効化
     api:
-      base_url: https://api.binance.com/api/v3
+      base_url: https://api.binance.com
       ws_url: wss://stream.binance.com:9443
       endpoints:
-        ticker: /ticker/24hr
-        depth: /depth
-        trades: /trades
-        balance: /account
-        order: /order
-        all_orders: /allOrders
+        ticker: /api/v3/ticker/24hr
+        depth: /api/v3/depth
+        price: /api/v3/ticker/price
+        exchange_info: /api/v3/exchangeInfo
+        server_time: /api/v3/time
+        balance: /api/v3/account
+        order: /api/v3/order
+        all_orders: /api/v3/allOrders
     rate_limits:
       weight_per_minute: 1200
       orders_per_second: 10
       orders_per_day: 200000
     supported_pairs:
+      # JPY建てペア（直接取引可能）
+      - BTCJPY
+      - ETHJPY
+      - XRPJPY
+      - BNBJPY
+      - ADAJPY
+      # USDT建てペア（JPY変換）
       - BTCUSDT
       - ETHUSDT
       - XRPUSDT
-      - BTCBUSD
-      - ETHBUSD
+      - LTCUSDT
+      - BCHUSDT
+      - ETCUSDT
+      - BNBUSDT
+      - ADAUSDT
+      - DOGEUSDT
+      - MATICUSDT
+    pair_type: mixed  # JPY建てとUSDT建て混在
 
 # Common settings
 common:

@@ -13,6 +13,8 @@ from .bitflyer import BitFlyerClient
 from .bitbank import BitbankClient
 from .coincheck import CoincheckClient
 from .gmo import GMOClient
+from .bybit import BybitCollector
+from .binance import BinanceCollector
 
 
 class DataCollector:
@@ -47,6 +49,10 @@ class DataCollector:
                     client = CoincheckClient(exchange_config)
                 elif exchange_code == 'gmo':
                     client = GMOClient(exchange_config)
+                elif exchange_code == 'bybit':
+                    client = BybitCollector(exchange_config)
+                elif exchange_code == 'binance':
+                    client = BinanceCollector(exchange_config)
                 else:
                     logger.warning(f"Unsupported exchange: {exchange_code}")
                     continue
